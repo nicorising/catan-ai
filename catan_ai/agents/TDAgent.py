@@ -19,7 +19,6 @@ class TDAgent(Player):
         self.q_table = defaultdict(lambda: defaultdict(float))
 
     def decide(self, game: Game, playable_actions: Iterable[Action]):
-        # Check the current prompt
         if game.state.current_prompt == ActionPrompt.MOVE_ROBBER or game.state.current_prompt == ActionPrompt.DISCARD :
             return self.handle_special_prompt(game, playable_actions)
         else: 
@@ -28,19 +27,17 @@ class TDAgent(Player):
     def pick_standard_action(self, game, playable_actions):
         state = self.get_state(game)
 
-        # Epsilon-greedy action selection
         if random.random() < self.epsilon:
             action = random.choice(playable_actions)
         else:
             action = self.get_best_action(state, playable_actions)
 
-        while 'TRADE' in str(action[1]):  # Remove trade actions
+        while 'TRADE' in str(action[1]):  
             action = random.choice(playable_actions)
         
         return action
 
     def handle_special_prompt(self, game, playable_actions):
-        # Handle actions for prompts like MOVE_ROBBER or DISCARD
         return random.choice(playable_actions) if playable_actions else None
 
     def get_state(self, game: Game):
@@ -55,28 +52,14 @@ class TDAgent(Player):
 
     def update_q_value(self, state, action, reward, next_state, next_actions):
         best_next_action = self.get_best_action(next_state, next_actions)
-        # equation for TD learning
         self.q_table[state][action] = self.q_table[state][action] + self.learning_rate * (reward + self.discount_factor * (self.q_table[next_state][best_next_action]) - self.q_table[state][action])
-    
-    # def calculate_reward(self, game):
-    #     # Example: Reward based on victory or progress
-    #     if game.winning_color() == self.color:
-    #         return 10  # Win
-    #     elif game.winning_color() is not None:
-    #         return -10  # Loss
-    #     else:
-    #         # Optional: Provide intermediate rewards based on progress
-    #         key = f"{self.color}_ACTUAL_VICTORY_POINTS"
-    #         return game.state.player_state.get(key, 0) / game.vps_to_win
 
     def calculate_reward(self, game):
-        # Example: Reward based on victory or progress
         if game.winning_color() == self.color:
-            return game.vps_to_win  # Win
+            return game.vps_to_win  
         elif game.winning_color() is not None:
-            return -game.vps_to_win  # Loss
+            return -game.vps_to_win  
         else:
-            # Provide reward based on how far the player is from winning
             key = f"{self.color}_ACTUAL_VICTORY_POINTS"
             current_vps = game.state.player_state.get(key, 0)
             return current_vps - game.vps_to_win
