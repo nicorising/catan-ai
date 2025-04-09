@@ -1,13 +1,13 @@
 import random
 from collections.abc import Iterable
 
-from catanatron import Game
+from catanatron.game import Game
 from catanatron.models.actions import Action, maritime_trade_possibilities
 from catanatron.models.enums import ActionType
 from catanatron.models.player import Player
 
 
-class RandomAgent(Player):
+class DQNAgent(Player):
     def decide(self, game: Game, playable_actions: Iterable[Action]) -> Action:
         playable_actions = set(playable_actions)
 
