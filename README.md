@@ -20,7 +20,19 @@ pre-commit install
 
 ### Windows
 
-Someone else document this part :)
+```Powershell
+python -m venv .venv
+. .\venv\Scripts\Activate.ps1
+```
+
+If this above command produces an error related to execution policy
+```Powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+After setting the policy, retry activation:
+```Powershell
+. .\venv\Scripts\Activate.ps1
+```
 
 ## Visualizing Games
 
