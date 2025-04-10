@@ -36,9 +36,6 @@ def main() -> None:
         game = Game(players, catan_map=board)
         winner = game.play()
 
-        game.state.players = [RandomPlayer(player.color) for player in game.state.players]
-        open_link(game)
-
         scorecard[winner] = scorecard.get(winner, 0) + 1
 
     print("Player\tWins")
@@ -46,6 +43,9 @@ def main() -> None:
     for player, wins in scorecard.items():
         name = player.name if player is not None else "None"
         print(f"{name}\t{wins}")
+
+    game.state.players = [RandomPlayer(player.color) for player in game.state.players]
+    open_link(game)
 
 
 if __name__ == "__main__":
