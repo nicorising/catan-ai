@@ -68,11 +68,16 @@ Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"
 
 
 class DQNTrainAgent(Player):
-    def __init__(self, color: Color) -> None:
+    def __init__(self, color: Color, path: str | None = None) -> None:
         super().__init__(color)
 
         self.policy_net = CatanDQN(N_OBSERVATIONS, N_ACTIONS)
         self.target_net = CatanDQN(N_OBSERVATIONS, N_ACTIONS)
+
+        if path is not None:
+            state_dict = torch.load(path, weights_only=True)
+            self.policy_net.load_state_dict(state_dict)
+            self.target_net.load_state_dict(state_dict)
 
         self.memory = ReplayMemory(1_000_000)
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
@@ -82,6 +87,9 @@ class DQNTrainAgent(Player):
         self.idx_to_edge: list[tuple[int, int]] | None = None
 
         self.last_decide = None
+
+    def save(self, path: str) -> None:
+        torch.save(self.policy_net.state_dict(), path)
 
     def game_over(self, game: Game) -> None:
         player_vp = get_visible_victory_points(game.state, self.color)
@@ -168,8 +176,6 @@ class DQNTrainAgent(Player):
         elif action.action_type == ActionType.BUILD_ROAD:
             edge_idx = self.edge_to_idx[action.value]
             return NUM_NODES + 1 + edge_idx
-        else:
-            raise ValueError(f"Unhandled action type in action_to_index: {action.action_type}")
 
     def index_to_action(self, index: int, state: State) -> Action:
         if index == 0:

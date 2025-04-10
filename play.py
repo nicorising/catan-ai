@@ -6,10 +6,11 @@ from catanatron import Color, Game, game
 from catanatron.models.player import RandomPlayer
 from catanatron_server.utils import open_link
 
-from catan_ai.agents import RandomAgent
+from catan_ai.agents import DQNAgent, RandomAgent
 
 game.TURNS_LIMIT = 1000
 
+MODEL_PATH = "model.pt"
 BOARD_PATH = "board.pickle"
 
 
@@ -17,7 +18,7 @@ def main() -> None:
     num_games = int(sys.argv[1]) if len(sys.argv) >= 2 else 1
 
     players = [
-        RandomAgent(Color.BLUE),
+        DQNAgent(Color.BLUE, path=MODEL_PATH),
         RandomAgent(Color.RED),
     ]
 

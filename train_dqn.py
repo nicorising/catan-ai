@@ -9,11 +9,12 @@ from catan_ai.agents import DQNTrainAgent, RandomAgent
 
 game.TURNS_LIMIT = 1000
 
+MODEL_PATH = "model.py"
 BOARD_PATH = "board.pickle"
 
 
 def main() -> None:
-    dqn_agent = DQNTrainAgent(Color.BLUE)
+    dqn_agent = DQNTrainAgent(Color.BLUE, path=MODEL_PATH)
 
     players = [
         dqn_agent,
@@ -47,6 +48,8 @@ def main() -> None:
         print(
             f"Game: {idx / 1000:.0%}, Win vs. Red: {player_score:.0%}, Win vs. All: {all_score:.0%}"
         )
+
+    dqn_agent.save(MODEL_PATH)
 
     print("Player\tWins")
     print("------\t----")
