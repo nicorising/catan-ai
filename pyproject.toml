@@ -4,11 +4,10 @@ version = "0.1.0"
 readme = "README.md"
 requires-python = ">=3.11"
 
-dependencies = ["pre_commit==4.1.0", "ruff==0.11.0", "catanatron==3.2.1",
-                "sqlalchemy==2.0.40", "numpy==2.2.4"]
+dependencies = ["pre_commit==4.1.0", "ruff==0.11.0", "catanatron==3.2.1"]
 
 [tool.ruff]
-lint.select = [
+select = [
     "E", # pycodestyle
     "F", # pyflakes
     "I", # isort
