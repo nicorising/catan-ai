@@ -15,7 +15,8 @@ from catanatron.state_functions import (
 )
 
 GAME_OBSERVATIONS = 2 + len(RESOURCES)
-N_OBSERVATIONS = GAME_OBSERVATIONS + NUM_TILES + NUM_NODES + NUM_EDGES
+TILE_OBSERVATIONS = NUM_TILES * len(RESOURCES)
+N_OBSERVATIONS = GAME_OBSERVATIONS + TILE_OBSERVATIONS + NUM_NODES + NUM_EDGES
 N_ACTIONS = NUM_NODES + NUM_EDGES + 1
 
 
@@ -48,6 +49,7 @@ class DQNAgent(Player):
         super().__init__(color)
 
         state_dict = torch.load(path, map_location=DEVICE)
+        print([layer.shape for layer in state_dict.values()])
 
         self.policy_net = CatanDQN(N_OBSERVATIONS, N_ACTIONS)
         self.policy_net.load_state_dict(state_dict)
@@ -91,10 +93,16 @@ class DQNAgent(Player):
 
         game_obs = torch.tensor([vp, enemy_vp, *resources], device=DEVICE, dtype=torch.float)
 
-        tile_obs = torch.zeros(NUM_TILES, device=DEVICE, dtype=torch.float)
+        num_resources = len(RESOURCES)
+        tile_obs = torch.zeros((NUM_TILES, num_resources), device=DEVICE, dtype=torch.float)
+
         for coordinate, tile in state.board.map.land_tiles.items():
             idx = self.tile_to_idx[coordinate]
-            tile_obs[idx] = RESOURCES.index(tile.resource) if tile.resource is not None else -1
+            if tile.resource is not None:
+                resource_idx = RESOURCES.index(tile.resource)
+                tile_obs[idx, resource_idx] = 1
+
+        tile_obs = tile_obs.view(-1)
 
         node_obs = torch.zeros(NUM_NODES, device=DEVICE, dtype=torch.float)
         edge_obs = torch.zeros(NUM_EDGES, device=DEVICE, dtype=torch.float)

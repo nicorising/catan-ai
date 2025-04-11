@@ -97,6 +97,7 @@ class DQNTrainAgent(Player):
 
     def save(self, path: str) -> None:
         torch.save(self.policy_net.state_dict(), path)
+        self.policy_net.load_state_dict(torch.load(path, map_location=DEVICE))
 
     def plot_loss(self):
         plt.plot(self.losses)
