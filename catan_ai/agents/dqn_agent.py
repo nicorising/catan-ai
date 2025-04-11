@@ -28,17 +28,19 @@ class CatanDQN(nn.Module):
     def __init__(self, n_observations, n_actions):
         super().__init__()
 
-        self.layer1 = nn.Linear(n_observations, 256)
-        self.layer2 = nn.Linear(256, 256)
-        self.layer3 = nn.Linear(256, 256)
-        self.layer4 = nn.Linear(256, n_actions)
-        self.dropout = nn.Dropout(p=0.2)
+        self.layer1 = nn.Linear(n_observations, 384)
+        self.layer2 = nn.Linear(384, 256)
+        self.layer3 = nn.Linear(256, 192)
+        self.layer4 = nn.Linear(192, 160)
+        self.layer5 = nn.Linear(160, n_actions)
+        self.dropout = nn.Dropout(p=0.1)
 
     def forward(self, x):
-        x = self.dropout(F.relu(self.layer1(x)))
+        x = F.relu(self.layer1(x))
         x = self.dropout(F.relu(self.layer2(x)))
         x = self.dropout(F.relu(self.layer3(x)))
-        return self.layer4(x)
+        x = self.dropout(F.relu(self.layer4(x)))
+        return self.layer5(x)
 
 
 class DQNAgent(Player):

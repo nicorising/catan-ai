@@ -1,5 +1,3 @@
-import os
-import pickle
 import sys
 
 from catanatron import Color, Game, game
@@ -11,7 +9,6 @@ from catan_ai.agents import DQNAgent, RandomAgent
 game.TURNS_LIMIT = 1000
 
 MODEL_PATH = "model.pt"
-BOARD_PATH = "board.pickle"
 
 
 def main() -> None:
@@ -22,18 +19,10 @@ def main() -> None:
         RandomAgent(Color.RED),
     ]
 
-    if os.path.exists(BOARD_PATH):
-        with open(BOARD_PATH, "rb") as file:
-            board = pickle.load(file)
-    else:
-        board = Game(players).state.board.map
-        with open(BOARD_PATH, "wb") as file:
-            pickle.dump(board, file)
-
     scorecard = {}
 
     for _ in range(num_games):
-        game = Game(players, catan_map=board)
+        game = Game(players)
         winner = game.play()
 
         scorecard[winner] = scorecard.get(winner, 0) + 1

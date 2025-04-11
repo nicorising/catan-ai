@@ -19,16 +19,16 @@ from catanatron.state_functions import (
 )
 
 GAME_OBSERVATIONS = 2 + len(RESOURCES)
-N_OBSERVATIONS = GAME_OBSERVATIONS + NUM_TILES + NUM_NODES + NUM_EDGES
+TILE_OBSERVATIONS = NUM_TILES * len(RESOURCES)
+N_OBSERVATIONS = GAME_OBSERVATIONS + TILE_OBSERVATIONS + NUM_NODES + NUM_EDGES
 N_ACTIONS = NUM_NODES + NUM_EDGES + 1
 
-MEMORY = 10_000
-BATCH_SIZE = 1_000
+MEMORY = 100_000
+BATCH_SIZE = 10_000
 GAMMA = 0.99
 EPS_START = 1.0
 EPS_END = 0.05
-EPS_DECAY = 1_000_000.0
-TAU = 0.005
+EPS_DECAY = 400_000.0
 LR = 0.0001
 
 DEVICE = torch.device(
@@ -40,17 +40,19 @@ class CatanDQN(nn.Module):
     def __init__(self, n_observations, n_actions):
         super().__init__()
 
-        self.layer1 = nn.Linear(n_observations, 256)
-        self.layer2 = nn.Linear(256, 256)
-        self.layer3 = nn.Linear(256, 256)
-        self.layer4 = nn.Linear(256, n_actions)
-        self.dropout = nn.Dropout(p=0.2)
+        self.layer1 = nn.Linear(n_observations, 384)
+        self.layer2 = nn.Linear(384, 256)
+        self.layer3 = nn.Linear(256, 192)
+        self.layer4 = nn.Linear(192, 160)
+        self.layer5 = nn.Linear(160, n_actions)
+        self.dropout = nn.Dropout(p=0.1)
 
     def forward(self, x):
-        x = self.dropout(F.relu(self.layer1(x)))
+        x = F.relu(self.layer1(x))
         x = self.dropout(F.relu(self.layer2(x)))
         x = self.dropout(F.relu(self.layer3(x)))
-        return self.layer4(x)
+        x = self.dropout(F.relu(self.layer4(x)))
+        return self.layer5(x)
 
 
 class ReplayMemory:
@@ -75,15 +77,12 @@ class DQNTrainAgent(Player):
         super().__init__(color)
 
         self.policy_net = CatanDQN(N_OBSERVATIONS, N_ACTIONS)
-        self.target_net = CatanDQN(N_OBSERVATIONS, N_ACTIONS)
 
         if path is not None:
             state_dict = torch.load(path, map_location=DEVICE)
             self.policy_net.load_state_dict(state_dict)
-            self.target_net.load_state_dict(state_dict)
 
         self.policy_net = self.policy_net.to(DEVICE)
-        self.target_net = self.policy_net.to(DEVICE)
 
         self.memory = ReplayMemory(MEMORY)
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
@@ -108,18 +107,17 @@ class DQNTrainAgent(Player):
 
     def game_over(self, game: Game) -> None:
         game_result_reward = (
-            2 if game.winning_color() == self.color else -2 if game.winning_color() is None else -4
+            2 if game.winning_color() == self.color else 0 if game.winning_color() is None else -2
         )
         game_result_reward = 0
         if self.last_decide is not None:
             obs, action_tensor, reward = self.last_decide
-            reward += game_result_reward
 
             self.memory.push(
-                obs.view(1, -1),
-                action_tensor.view(1, 1),
-                None,
-                torch.tensor([[reward]], device=DEVICE, dtype=torch.float),
+                obs,
+                action_tensor,
+                self.state_to_obs(game.state),
+                torch.tensor(reward + game_result_reward, device=DEVICE, dtype=torch.float),
             )
 
             self.last_decide = None
@@ -128,56 +126,24 @@ class DQNTrainAgent(Player):
             return
 
         transitions = self.memory.sample(BATCH_SIZE)
-        batch = Transition(*zip(*transitions))
+        state_batch, action_batch, next_state_batch, reward_batch = zip(*transitions)
 
-        # Compute a mask of non-final states and concatenate the batch elements
-        # (a final state would've been the one after which simulation ended)
-        non_final_mask = torch.tensor(
-            tuple(map(lambda s: s is not None, batch.next_state)),
-            device=DEVICE,
-            dtype=torch.bool,
-        )
-        non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
-        state_batch = torch.cat(batch.state)
-        action_batch = torch.cat(batch.action)
-        reward_batch = torch.cat(batch.reward)
+        state_batch = torch.stack(state_batch)
+        action_batch = torch.tensor(action_batch, device=DEVICE)
+        reward_batch = torch.tensor(reward_batch, device=DEVICE)
 
-        # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-        # columns of actions taken. These are the actions which would've been taken
-        # for each batch state according to policy_net
-        state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+        estimates = self.policy_net(state_batch).gather(1, action_batch.unsqueeze(1)).squeeze()
 
-        # Compute V(s_{t+1}) for all next states.
-        # Expected values of actions for non_final_next_states are computed based
-        # on the "older" target_net; selecting their best reward with max(1).values
-        # This is merged based on the mask, such that we'll have either the expected
-        # state value or 0 in case the state was final.
-        next_state_values = torch.zeros(BATCH_SIZE, device=DEVICE)
-        with torch.no_grad():
-            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1).values
-        next_state_values = next_state_values.view(-1, 1)
-        # Compute the expected Q values
-        expected_state_action_values = reward_batch + (next_state_values * GAMMA)
+        next_states = torch.stack(next_state_batch)
+        targets = reward_batch.clone()
+        targets += GAMMA * torch.max(self.policy_net(next_states), dim=1)[0]
 
-        criterion = nn.MSELoss()
-        loss = criterion(state_action_values, expected_state_action_values)
+        loss = nn.MSELoss()(estimates, targets)
         self.losses.append(loss.item())
 
-        # Optimize the model
         self.optimizer.zero_grad()
         loss.backward()
-
-        # In-place gradient clipping
-        torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
-
-        target_net_state_dict = self.target_net.state_dict()
-        policy_net_state_dict = self.policy_net.state_dict()
-        for key in policy_net_state_dict:
-            target_net_state_dict[key] = policy_net_state_dict[key] * TAU + target_net_state_dict[
-                key
-            ] * (1 - TAU)
-        self.target_net.load_state_dict(target_net_state_dict)
 
     def action_to_index(self, action: Action) -> int:
         if action.action_type == ActionType.END_TURN:
@@ -214,10 +180,16 @@ class DQNTrainAgent(Player):
 
         game_obs = torch.tensor([vp, enemy_vp, *resources], device=DEVICE, dtype=torch.float)
 
-        tile_obs = torch.zeros(NUM_TILES, device=DEVICE, dtype=torch.float)
+        num_resources = len(RESOURCES)
+        tile_obs = torch.zeros((NUM_TILES, num_resources), device=DEVICE, dtype=torch.float)
+
         for coordinate, tile in state.board.map.land_tiles.items():
             idx = self.tile_to_idx[coordinate]
-            tile_obs[idx] = RESOURCES.index(tile.resource) if tile.resource is not None else -1
+            if tile.resource is not None:
+                resource_idx = RESOURCES.index(tile.resource)
+                tile_obs[idx, resource_idx] = 1
+
+        tile_obs = tile_obs.view(-1)
 
         node_obs = torch.zeros(NUM_NODES, device=DEVICE, dtype=torch.float)
         edge_obs = torch.zeros(NUM_EDGES, device=DEVICE, dtype=torch.float)
@@ -238,10 +210,10 @@ class DQNTrainAgent(Player):
         if self.last_decide is not None:
             state, action, reward = self.last_decide
 
-            state = state.view(1, -1)
-            action = action.view(1, 1)
-            next_state = obs.view(1, -1)
-            reward = torch.tensor([[reward]], device=DEVICE, dtype=torch.float)
+            state = state
+            action = action
+            next_state = obs
+            reward = torch.tensor(reward, device=DEVICE, dtype=torch.float)
 
             self.memory.push(state, action, next_state, reward)
 
@@ -266,7 +238,7 @@ class DQNTrainAgent(Player):
                 action_tensor = torch.argmax(masked_q_values)
         else:
             action_idx = random.choice(valid_indices)
-            action_tensor = torch.tensor([action_idx], device=DEVICE, dtype=torch.long)
+            action_tensor = torch.tensor(action_idx, device=DEVICE, dtype=torch.long)
 
         action = self.index_to_action(action_tensor.item(), game.state)
 
@@ -277,7 +249,7 @@ class DQNTrainAgent(Player):
             rewards = {
                 ActionType.BUILD_SETTLEMENT: 1,
                 ActionType.BUILD_CITY: 1,
-                ActionType.BUILD_ROAD: 0.1,
+                ActionType.BUILD_ROAD: 0,
             }
             reward = rewards.get(action.action_type, 0)
         else:

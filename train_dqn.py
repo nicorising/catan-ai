@@ -7,20 +7,22 @@ from catan_ai.agents import DQNTrainAgent, RandomAgent
 game.TURNS_LIMIT = 1000
 
 MODEL_PATH = "model.pt"
+NUM_GAMES = 2_000
 
 
 def main() -> None:
-    dqn_agent = DQNTrainAgent(Color.BLUE, path=None)
+    dqn_agent = DQNTrainAgent(Color.BLUE)
     # dqn_agent = DQNTrainAgent(Color.BLUE, path=MODEL_PATH)
 
     players = [
         dqn_agent,
         RandomAgent(Color.RED),
+        # DQNAgent(Color.RED, path=MODEL_PATH),
     ]
 
     scorecard = {}
 
-    for idx in range(1_000):
+    for idx in range(NUM_GAMES):
         game = Game(players)
         winner = game.play()
 
@@ -38,7 +40,7 @@ def main() -> None:
             player_score = 0
         all_score = scorecard.get(Color.BLUE, 0) / sum(scorecard.values())
         print(
-            f"Game: {idx / 1_000:.0%}, Win vs. Red: {player_score:.0%}, Win vs. All: {all_score:.0%}, Decay: {dqn_agent.eps_threshold}"
+            f"Game: {idx / NUM_GAMES:.0%}, Win vs. Red: {player_score:.0%}, Win vs. All: {all_score:.0%}, Decay: {dqn_agent.eps_threshold}"
         )
 
     dqn_agent.save(MODEL_PATH)
