@@ -7,7 +7,7 @@ from catan_ai.agents import DQNTrainAgent, RandomAgent
 game.TURNS_LIMIT = 1000
 
 MODEL_PATH = "model.pt"
-NUM_GAMES = 2_000
+NUM_GAMES = 200_000
 
 
 def main() -> None:
