@@ -4,7 +4,7 @@ from catanatron import Color, Game, game
 from catanatron.models.player import RandomPlayer
 from catanatron_server.utils import open_link
 
-from catan_ai.agents import DQNAgent, RandomAgent
+from catan_ai.agents import DQNAgent, TDAgent
 
 game.TURNS_LIMIT = 1000
 
@@ -15,9 +15,11 @@ def main() -> None:
     num_games = int(sys.argv[1]) if len(sys.argv) >= 2 else 1
 
     players = [
-        DQNAgent(Color.BLUE, path=MODEL_PATH),
-        RandomAgent(Color.RED),
+        TDAgent(Color.BLUE),
+        DQNAgent(Color.RED, path=MODEL_PATH),
     ]
+    players[0].train()
+    players[0].save()
 
     scorecard = {}
 

@@ -29,6 +29,7 @@ GAMMA = 0.99
 EPS_START = 1.0
 EPS_END = 0.05
 EPS_DECAY = 400_000.0
+TAU = 0.005
 LR = 0.0001
 
 DEVICE = torch.device(
@@ -77,12 +78,16 @@ class DQNTrainAgent(Player):
         super().__init__(color)
 
         self.policy_net = CatanDQN(N_OBSERVATIONS, N_ACTIONS)
+        self.target_net = CatanDQN(N_OBSERVATIONS, N_ACTIONS)
 
         if path is not None:
             state_dict = torch.load(path, map_location=DEVICE)
             self.policy_net.load_state_dict(state_dict)
 
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+
         self.policy_net = self.policy_net.to(DEVICE)
+        self.target_net = self.target_net.to(DEVICE)
 
         self.memory = ReplayMemory(MEMORY)
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
@@ -131,13 +136,14 @@ class DQNTrainAgent(Player):
 
         state_batch = torch.stack(state_batch)
         action_batch = torch.tensor(action_batch, device=DEVICE)
+        next_state_batch = torch.stack(next_state_batch)
         reward_batch = torch.tensor(reward_batch, device=DEVICE)
 
         estimates = self.policy_net(state_batch).gather(1, action_batch.unsqueeze(1)).squeeze()
 
-        next_states = torch.stack(next_state_batch)
         targets = reward_batch.clone()
-        targets += GAMMA * torch.max(self.policy_net(next_states), dim=1)[0]
+        with torch.no_grad():
+            targets += GAMMA * self.target_net(next_state_batch).max(1).values
 
         loss = nn.MSELoss()(estimates, targets)
         self.losses.append(loss.item())
@@ -145,6 +151,14 @@ class DQNTrainAgent(Player):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+
+        target_net_state_dict = self.target_net.state_dict()
+        policy_net_state_dict = self.policy_net.state_dict()
+        for layer in policy_net_state_dict:
+            target_net_state_dict[layer] = policy_net_state_dict[
+                layer
+            ] * TAU + target_net_state_dict[layer] * (1 - TAU)
+        self.target_net.load_state_dict(target_net_state_dict)
 
     def action_to_index(self, action: Action) -> int:
         if action.action_type == ActionType.END_TURN:
