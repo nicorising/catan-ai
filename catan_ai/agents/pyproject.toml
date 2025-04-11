@@ -1,0 +1,15 @@
+[project]
+name = "catan-ai"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = ["pre_commit==4.1.0", "ruff==0.11.0", "catanatron==3.2.1"]
+
+[tool.ruff]
+select = [
+    "E", # pycodestyle
+    "F", # pyflakes
+    "I", # isort
+]
+line-length = 100
