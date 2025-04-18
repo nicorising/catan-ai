@@ -2,7 +2,6 @@ import random
 from collections.abc import Iterable
 from typing import Any, Dict, List, Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 from catanatron.game import Game
 from catanatron.models.actions import Action, maritime_trade_possibilities
@@ -321,26 +320,6 @@ class GeneticAlgorithmAgent(Player):
         print(f"Weights loaded from {filename}")
 
 
-def plot_fitness_progress(fitness_history, filename="fitness_plot.png"):
-    generations = [entry["generation"] + 1 for entry in fitness_history]
-    max_fitness = [entry["max_fitness"] for entry in fitness_history]
-    avg_fitness = [entry["avg_fitness"] for entry in fitness_history]
-    min_fitness = [entry["min_fitness"] for entry in fitness_history]
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(generations, max_fitness, label="Max Fitness", linewidth=2)
-    plt.plot(generations, avg_fitness, label="Avg Fitness", linewidth=2)
-    plt.plot(generations, min_fitness, label="Min Fitness", linewidth=2)
-    plt.xlabel("Generation")
-    plt.ylabel("Fitness Score")
-    plt.title("Fitness Progress Over Generations")
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(filename)
-    print(f"Fitness plot saved as '{filename}'")
-
-
 if __name__ == "__main__":
     agent = GeneticAlgorithmAgent(
         color=Color.WHITE,
@@ -363,4 +342,3 @@ if __name__ == "__main__":
             f"Min={entry['min_fitness']:.4f}"
         )
 
-    plot_fitness_progress(agent.fitness_history)
