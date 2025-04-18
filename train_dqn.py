@@ -1,10 +1,8 @@
 from catanatron import Color, Game
-from catanatron.models.player import RandomPlayer
-from catanatron_server.utils import open_link
 
 from catan_ai.agents import DQNTrainAgent, RandomAgent
 
-MODEL_PATH = "model.pt"
+MODEL_PATH = "dqn_model.pt"
 NUM_GAMES = 20_000
 
 
@@ -43,17 +41,6 @@ def main() -> None:
         print(train_str)
 
     dqn_agent.save(MODEL_PATH)
-
-    print("Player\tWins")
-    print("------\t----")
-    for player, wins in scorecard.items():
-        name = player.name if player is not None else "None"
-        print(f"{name}\t{wins}")
-
-    dqn_agent.plot_loss()
-
-    game.state.players = [RandomPlayer(player.color) for player in game.state.players]
-    open_link(game)
 
 
 if __name__ == "__main__":

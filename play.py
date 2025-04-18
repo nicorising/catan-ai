@@ -2,33 +2,43 @@ import sys
 
 from catanatron import Color, Game, RandomPlayer
 from catanatron_server.utils import open_link
+from sqlalchemy.exc import OperationalError
 
-from catan_ai.agents import DQNAgent, GeneticAlgorithmAgent, RandomAgent, TDAgent
-
-MODEL_PATH = "model.pt"
-
-
-def create_ga_agent(color):
-    agent = GeneticAlgorithmAgent(color)
-    try:
-        agent.load_weights("final_weights.npy")
-        print("Loaded pre-trained weights for genetic algorithm agent")
-    except FileNotFoundError:
-        print("No pre-trained weights found. Using untrained agent.")
-    return agent
+from catan_ai.agents import MCTS, DQNAgent, GeneticAlgorithmAgent, RandomAgent, TDAgent
 
 
 def main() -> None:
-    num_games = int(sys.argv[1]) if len(sys.argv) >= 2 else 100
+    match sys.argv[1].lower() if len(sys.argv) >= 2 else "":
+        case "mcts":
+            agent_name = "MCTS"
+            agent = MCTS(Color.BLUE)
+            print("Loaded MCTS agent")
+        case "td":
+            agent_name = "TD"
+            agent = TDAgent(Color.BLUE)
+            agent.load()
+            print("Loaded pre-trained TD agent")
+        case "ga":
+            agent_name = "GA"
+            agent = GeneticAlgorithmAgent(Color.BLUE)
+            try:
+                agent.load_weights("final_weights.npy")
+                print("Loaded pre-trained weights for genetic algorithm agent")
+            except FileNotFoundError:
+                print("No pre-trained weights found. Using untrained agent")
+        case "dqn":
+            agent_name = "DQN"
+            agent = DQNAgent(Color.BLUE, path="dqn_model.pt")
+            print("Loaded pre-trained DQN agent")
+        case _:
+            agent_name = "Random"
+            agent = RandomAgent(Color.BLUE)
+            print("No model specified/unknown name used, loading random agent")
 
-    td_agent = TDAgent(Color.BLUE)
-    td_agent.load()
+    num_games = int(sys.argv[2]) if len(sys.argv) >= 3 else 1
 
     players = [
-        # td_agent,
-        # MCTS(Color.RED),
-        # create_ga_agent(Color.WHITE),
-        DQNAgent(Color.ORANGE, path=MODEL_PATH),
+        agent,
         RandomAgent(Color.RED),
     ]
 
@@ -39,17 +49,20 @@ def main() -> None:
         winner = game.play()
 
         scorecard[winner] = scorecard.get(winner, 0) + 1
-        print("Played")
 
     print("Player\tWins")
     print("------\t----")
-    for player, wins in scorecard.items():
-        name = player.name if player is not None else "None"
-        print(f"{name}\t{wins}")
+    print(f"{agent_name}\t{scorecard.get(Color.BLUE, 0)}")
+    print(f"Random\t{scorecard.get(Color.RED, 0)}")
+    print(f"Draw\t{scorecard.get(None, 0)}")
 
-    print(sum(players[0].times) / len(players[0].times))
+    # Fix to avoid bug uploading custom models to Catanatron server
     game.state.players = [RandomPlayer(player.color) for player in game.state.players]
-    open_link(game)
+
+    try:
+        open_link(game)
+    except OperationalError:
+        print("Unable to connect to Catanatron server to display game, is it running?")
 
 
 if __name__ == "__main__":

@@ -3,7 +3,6 @@ import random
 from collections import deque, namedtuple
 from collections.abc import Iterable
 
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -98,18 +97,10 @@ class DQNTrainAgent(Player):
         self.idx_to_edge: list[tuple[int, int]] | None = None
 
         self.last_decide = None
-        self.losses = []
 
     def save(self, path: str) -> None:
         torch.save(self.policy_net.state_dict(), path)
         self.policy_net.load_state_dict(torch.load(path, map_location=DEVICE))
-
-    def plot_loss(self):
-        plt.plot(self.losses)
-        plt.title("Loss Over Training")
-        plt.xlabel("Training Step")
-        plt.ylabel("Loss")
-        plt.show()
 
     def game_over(self, game: Game) -> None:
         game_result_reward = (
@@ -146,7 +137,6 @@ class DQNTrainAgent(Player):
             targets += GAMMA * self.target_net(next_state_batch).max(1).values
 
         loss = nn.MSELoss()(estimates, targets)
-        self.losses.append(loss.item())
 
         self.optimizer.zero_grad()
         loss.backward()
