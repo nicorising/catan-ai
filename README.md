@@ -15,6 +15,7 @@ Install requirements and pre-commit hooks:
 
 ```bash
 pip install .
+pip install -e 'git+https://github.com/bcollazo/catanatron#egg=catanatron_server&subdirectory=catanatron_server'
 pre-commit install
 ```
 

@@ -1,7 +1,6 @@
 import sys
 
 from catanatron import Color, Game, RandomPlayer
-from catanatron_server.utils import open_link
 from sqlalchemy.exc import OperationalError
 
 from catan_ai.agents import MCTS, DQNAgent, GeneticAlgorithmAgent, RandomAgent, TDAgent
@@ -60,9 +59,11 @@ def main() -> None:
     game.state.players = [RandomPlayer(player.color) for player in game.state.players]
 
     try:
+        from catanatron_server.utils import open_link
+
         open_link(game)
-    except OperationalError:
-        print("Unable to connect to Catanatron server to display game, is it running?")
+    except ModuleNotFoundError | OperationalError:
+        print("Unable to visualize game state")
 
 
 if __name__ == "__main__":
