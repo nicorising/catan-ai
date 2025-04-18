@@ -1,7 +1,7 @@
 import random
 from collections.abc import Iterable
 
-from catanatron.game import Game
+from catanatron import Game
 from catanatron.models.actions import Action, maritime_trade_possibilities
 from catanatron.models.enums import ActionPrompt, ActionType
 from catanatron.models.player import Player

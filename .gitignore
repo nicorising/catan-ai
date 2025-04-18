@@ -172,4 +172,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
 .idea/
+
+model.pt
+td_agent.pickle
