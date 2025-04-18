@@ -1,18 +1,25 @@
 import sys
 
-from catanatron import Color, Game, game
-from catanatron.models.player import RandomPlayer
+from catanatron import Color, Game, RandomPlayer
 from catanatron_server.utils import open_link
 
-from catan_ai.agents import DQNAgent, RandomAgent
-
-game.TURNS_LIMIT = 1000
+from catan_ai.agents import DQNAgent, GeneticAlgorithmAgent, RandomAgent
 
 MODEL_PATH = "model.pt"
 
 
+def create_ga_agent(color):
+    agent = GeneticAlgorithmAgent(color)
+    try:
+        agent.load_weights("final_weights.npy")
+        print("Loaded pre-trained weights for genetic algorithm agent")
+    except FileNotFoundError:
+        print("No pre-trained weights found. Using untrained agent.")
+    return agent
+
+
 def main() -> None:
-    num_games = int(sys.argv[1]) if len(sys.argv) >= 2 else 1
+    num_games = int(sys.argv[1]) if len(sys.argv) >= 2 else 100
 
     players = [
         DQNAgent(Color.BLUE, path=MODEL_PATH),
