@@ -71,8 +71,7 @@ class MCTS(Player):
         self.node = None
 
     def evaluate(self, wins, vp_avg, sims):
-        win_rate = wins / sims
-        return win_rate + 0.5 * vp_avg
+        return wins + 0.1 * (vp_avg / sims)
 
     def decide(self, game: Game, playable_actions: Iterable[Action]):
         """
@@ -95,7 +94,7 @@ class MCTS(Player):
             n = Node(self.color, act)
             # simulate the new child's action
             # this runtime can get very high, so keep sims low
-            wins, vp_loss_avg, sims = n.simulate(game.copy(), self, 2)
+            wins, vp_loss_avg, sims = n.simulate(game.copy(), self, 5)
             heuristic = self.evaluate(wins, vp_loss_avg, sims)
             if heuristic > best[0]:
                 best = (heuristic, act)
