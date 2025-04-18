@@ -341,4 +341,3 @@ if __name__ == "__main__":
             f"Avg={entry['avg_fitness']:.4f}, "
             f"Min={entry['min_fitness']:.4f}"
         )
-
