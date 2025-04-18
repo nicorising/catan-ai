@@ -24,7 +24,7 @@ def main() -> None:
 
     for _ in range(num_games):
         game = Game(players)
-        game.TURNS_LIMIT = 50000
+        game.TURNS_LIMIT = 5000000
         winner = game.play()
 
         scorecard[winner] = scorecard.get(winner, 0) + 1
