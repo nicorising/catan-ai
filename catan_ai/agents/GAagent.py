@@ -150,7 +150,7 @@ class GeneticAlgorithmAgent(Player):
             except Exception as e:
                 print(f"Error during fitness evaluation: {e}")
                 self.best_individual = original_best
-                return 0.0
+                return 1.0
         self.best_individual = original_best
         avg_vps = total_vps / self.evaluation_games
         win_rate = wins / self.evaluation_games
@@ -292,7 +292,7 @@ if __name__ == "__main__":
         mutation_rate=0.15,
         crossover_rate=0.8,
         tournament_size=3,
-        evaluation_games=2
+        evaluation_games=5
     )
     print("Training enhanced genetic algorithm agent...")
     results = agent.train()
