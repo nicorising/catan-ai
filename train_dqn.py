@@ -1,23 +1,19 @@
-from catanatron import Color, Game, game
+from catanatron import Color, Game
 from catanatron.models.player import RandomPlayer
 from catanatron_server.utils import open_link
 
 from catan_ai.agents import DQNTrainAgent, RandomAgent
 
-game.TURNS_LIMIT = 1000
-
 MODEL_PATH = "model.pt"
-NUM_GAMES = 200_000
+NUM_GAMES = 20_000
 
 
 def main() -> None:
     dqn_agent = DQNTrainAgent(Color.BLUE)
-    # dqn_agent = DQNTrainAgent(Color.BLUE, path=MODEL_PATH)
 
     players = [
         dqn_agent,
         RandomAgent(Color.RED),
-        # DQNAgent(Color.RED, path=MODEL_PATH),
     ]
 
     scorecard = {}
@@ -39,9 +35,12 @@ def main() -> None:
         except Exception:
             player_score = 0
         all_score = scorecard.get(Color.BLUE, 0) / sum(scorecard.values())
-        print(
-            f"Game: {idx / NUM_GAMES:.0%}, Win vs. Red: {player_score:.0%}, Win vs. All: {all_score:.0%}, Decay: {dqn_agent.eps_threshold}"
-        )
+
+        train_str = f"Game: {idx / NUM_GAMES:.0%}, "
+        train_str += f"Win vs. Red: {player_score:.0%}, "
+        train_str += f"Win vs. All: {all_score:.0%}, "
+        train_str += f"Decay: {dqn_agent.eps_threshold}"
+        print(train_str)
 
     dqn_agent.save(MODEL_PATH)
 

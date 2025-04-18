@@ -18,6 +18,8 @@ GAME_OBSERVATIONS = 2 + len(RESOURCES)
 TILE_OBSERVATIONS = NUM_TILES * len(RESOURCES)
 N_OBSERVATIONS = GAME_OBSERVATIONS + TILE_OBSERVATIONS + NUM_NODES + NUM_EDGES
 N_ACTIONS = NUM_NODES + NUM_EDGES + 1
+print(N_OBSERVATIONS)
+print(N_ACTIONS)
 
 
 DEVICE = torch.device(
@@ -49,7 +51,6 @@ class DQNAgent(Player):
         super().__init__(color)
 
         state_dict = torch.load(path, map_location=DEVICE)
-        print([layer.shape for layer in state_dict.values()])
 
         self.policy_net = CatanDQN(N_OBSERVATIONS, N_ACTIONS)
         self.policy_net.load_state_dict(state_dict)
