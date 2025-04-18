@@ -1,26 +1,20 @@
 import random
-from collections.abc import Iterable
-from typing import Any, Dict, List, Tuple
-
 import numpy as np
+from collections.abc import Iterable
+from typing import List, Tuple, Dict, Any
+
 from catanatron.game import Game
 from catanatron.models.actions import Action, maritime_trade_possibilities
-from catanatron.models.enums import ActionPrompt, ActionType
-from catanatron.models.player import Color, Player
+from catanatron.models.player import Player, Color
+from catanatron.models.enums import ActionType, ActionPrompt
+from catanatron.models.map import CatanMap
+from catanatron.state_functions import player_key, player_has_rolled
 
 
 class GeneticAlgorithmAgent(Player):
-    def __init__(
-        self,
-        color=Color.BLUE,
-        population_size=30,
-        generations=20,
-        mutation_rate=0.15,
-        crossover_rate=0.8,
-        tournament_size=3,
-        weights=None,
-        evaluation_games=3,
-    ):
+    def __init__(self, color=Color.BLUE, population_size=30, generations=20, 
+                 mutation_rate=0.15, crossover_rate=0.8, tournament_size=3,
+                 weights=None, evaluation_games=3):
         super().__init__(color)
         self.population_size = population_size
         self.generations = generations
@@ -35,7 +29,7 @@ class GeneticAlgorithmAgent(Player):
             self.weights = np.array(weights)
         self.population = self._initialize_population()
         self.best_individual = self.weights
-        self.best_fitness = float("-inf")
+        self.best_fitness = float('-inf')
         self.fitness_history = []
         self.position_quality_cache = {}
 
@@ -44,10 +38,8 @@ class GeneticAlgorithmAgent(Player):
         playable_actions -= set(maritime_trade_possibilities(game.state, self.color))
         playable_actions -= {Action(self.color, ActionType.BUY_DEVELOPMENT_CARD, None)}
         playable_actions = list(playable_actions)
-        if (
-            game.state.current_prompt == ActionPrompt.MOVE_ROBBER
-            or game.state.current_prompt == ActionPrompt.DISCARD
-        ):
+        if (game.state.current_prompt == ActionPrompt.MOVE_ROBBER or 
+            game.state.current_prompt == ActionPrompt.DISCARD):
             return self.handle_special_prompt(game, playable_actions)
         if not playable_actions:
             return None
@@ -86,7 +78,7 @@ class GeneticAlgorithmAgent(Player):
             "ActionType.BUILD_ROAD": 0,
             "ActionType.BUILD_SETTLEMENT": 1,
             "ActionType.BUILD_CITY": 2,
-            "ActionType.END_TURN": 3,
+            "ActionType.END_TURN": 3
         }
         action_type_idx = action_type_map.get(action_type_str, 0)
         features[action_type_idx] = 1
@@ -97,17 +89,11 @@ class GeneticAlgorithmAgent(Player):
         features[6] = sum(resource_counts) / 20.0
         features[7] = self._count_buildings(game, ActionType.BUILD_SETTLEMENT) / 5.0
         features[8] = self._count_buildings(game, ActionType.BUILD_CITY) / 4.0
-        if (
-            action.action_type == ActionType.BUILD_SETTLEMENT
-            or action.action_type == ActionType.BUILD_CITY
-        ):
+        if action.action_type == ActionType.BUILD_SETTLEMENT or action.action_type == ActionType.BUILD_CITY:
             position = action.value
             features[9] = self._evaluate_position_quality(game, position) / 10.0
             features[10] = self._evaluate_resource_scarcity(game, position) / 10.0
-        if (
-            action.action_type == ActionType.BUILD_ROAD
-            or action.action_type == ActionType.BUILD_SETTLEMENT
-        ):
+        if action.action_type == ActionType.BUILD_ROAD or action.action_type == ActionType.BUILD_SETTLEMENT:
             features[11] = self._evaluate_blocking_potential(game, action) / 5.0
         features[12] = min(game.state.num_turns / 50.0, 1.0)
         if action.action_type == ActionType.BUILD_ROAD:
@@ -171,14 +157,10 @@ class GeneticAlgorithmAgent(Player):
         fitness = win_rate * 10.0 + avg_vps / 10.0
         return fitness
 
-    def _selection(
-        self, population: List[np.ndarray], fitness_scores: List[float]
-    ) -> List[np.ndarray]:
+    def _selection(self, population: List[np.ndarray], fitness_scores: List[float]) -> List[np.ndarray]:
         selected = []
         for _ in range(len(population)):
-            tournament_indices = random.sample(
-                range(len(population)), min(self.tournament_size, len(population))
-            )
+            tournament_indices = random.sample(range(len(population)), min(self.tournament_size, len(population)))
             tournament_fitness = [fitness_scores[i] for i in tournament_indices]
             winner_idx = tournament_indices[np.argmax(tournament_fitness)]
             selected.append(population[winner_idx])
@@ -189,12 +171,8 @@ class GeneticAlgorithmAgent(Player):
             crossover_points = sorted(random.sample(range(1, len(parent1)), 2))
             child1 = np.copy(parent1)
             child2 = np.copy(parent2)
-            child1[crossover_points[0] : crossover_points[1]] = parent2[
-                crossover_points[0] : crossover_points[1]
-            ]
-            child2[crossover_points[0] : crossover_points[1]] = parent1[
-                crossover_points[0] : crossover_points[1]
-            ]
+            child1[crossover_points[0]:crossover_points[1]] = parent2[crossover_points[0]:crossover_points[1]]
+            child2[crossover_points[0]:crossover_points[1]] = parent1[crossover_points[0]:crossover_points[1]]
             return child1, child2
         else:
             return parent1.copy(), parent2.copy()
@@ -203,9 +181,7 @@ class GeneticAlgorithmAgent(Player):
         mutated = individual.copy()
         for i in range(len(mutated)):
             if random.random() < self.mutation_rate:
-                mutation_scale = (
-                    0.5 * (1.0 - self.best_fitness / 15.0) if self.best_fitness > 0 else 0.5
-                )
+                mutation_scale = 0.5 * (1.0 - self.best_fitness / 15.0) if self.best_fitness > 0 else 0.5
                 mutated[i] += random.uniform(-mutation_scale, mutation_scale)
                 mutated[i] = np.clip(mutated[i], -1, 1)
         return mutated
@@ -214,11 +190,9 @@ class GeneticAlgorithmAgent(Player):
         if num_generations is None:
             num_generations = self.generations
         all_generation_weights = {}
-        print(
-            f"Starting training with population size {self.population_size}, "
-            f"{num_generations} generations, mutation rate {self.mutation_rate}, "
-            f"crossover rate {self.crossover_rate}, tournament size {self.tournament_size}"
-        )
+        print(f"Starting training with population size {self.population_size}, "
+              f"{num_generations} generations, mutation rate {self.mutation_rate}, "
+              f"crossover rate {self.crossover_rate}, tournament size {self.tournament_size}")
         print(f"Each individual will be evaluated by playing {self.evaluation_games} games")
         print("Initializing population with simplified fitness evaluation...")
         for i, ind in enumerate(self.population):
@@ -226,7 +200,7 @@ class GeneticAlgorithmAgent(Player):
                 "ActionType.BUILD_ROAD": 0,
                 "ActionType.BUILD_SETTLEMENT": 1,
                 "ActionType.BUILD_CITY": 2,
-                "ActionType.END_TURN": 3,
+                "ActionType.END_TURN": 3
             }
             road_idx = action_type_map["ActionType.BUILD_ROAD"]
             settlement_idx = action_type_map["ActionType.BUILD_SETTLEMENT"]
@@ -235,13 +209,7 @@ class GeneticAlgorithmAgent(Player):
             city_weight = ind[city_idx]
             road_weight = ind[road_idx]
             position_quality_weight = ind[9]
-            fitness = (
-                settlement_weight
-                + city_weight
-                + 0.5 * road_weight
-                + position_quality_weight
-                - np.std(ind)
-            )
+            fitness = settlement_weight + city_weight + 0.5 * road_weight + position_quality_weight - np.std(ind)
             if fitness > self.best_fitness:
                 self.best_fitness = fitness
                 self.best_individual = ind.copy()
@@ -261,19 +229,15 @@ class GeneticAlgorithmAgent(Player):
                 self.best_fitness = fitness_scores[max_fitness_idx]
                 self.best_individual = self.population[max_fitness_idx].copy()
             avg_fitness = np.mean(fitness_scores)
-            self.fitness_history.append(
-                {
-                    "generation": generation,
-                    "max_fitness": max(fitness_scores),
-                    "avg_fitness": avg_fitness,
-                    "min_fitness": min(fitness_scores),
-                }
-            )
-            print(
-                f"  Generation {generation + 1}/{num_generations}: "
-                f"Best Fitness = {self.best_fitness:.4f}, "
-                f"Avg Fitness = {avg_fitness:.4f}"
-            )
+            self.fitness_history.append({
+                'generation': generation,
+                'max_fitness': max(fitness_scores),
+                'avg_fitness': avg_fitness,
+                'min_fitness': min(fitness_scores)
+            })
+            print(f"  Generation {generation + 1}/{num_generations}: "
+                  f"Best Fitness = {self.best_fitness:.4f}, "
+                  f"Avg Fitness = {avg_fitness:.4f}")
             all_generation_weights[f"generation_{generation + 1}"] = self.best_individual.copy()
             if self.best_fitness >= 15.0:
                 print(f"Reached excellent fitness of {self.best_fitness:.4f}. Stopping early.")
@@ -290,17 +254,17 @@ class GeneticAlgorithmAgent(Player):
                 new_population.append(child1)
                 if len(new_population) < self.population_size:
                     new_population.append(child2)
-            self.population = new_population[: self.population_size]
-        np.save("all_generation_weights.npy", all_generation_weights)
+            self.population = new_population[:self.population_size]
+        np.save('all_generation_weights.npy', all_generation_weights)
         print("All generation weights saved to 'all_generation_weights.npy'")
-        self.save_weights("final_weights.npy")
+        self.save_weights('final_weights.npy')
         print(f"Training completed. Final best fitness: {self.best_fitness:.4f}")
         print("Final weights saved to 'final_weights.npy'")
         return {
-            "best_individual": self.best_individual,
-            "best_fitness": self.best_fitness,
-            "fitness_history": self.fitness_history,
-            "all_weights": all_generation_weights,
+            'best_individual': self.best_individual,
+            'best_fitness': self.best_fitness,
+            'fitness_history': self.fitness_history,
+            'all_weights': all_generation_weights
         }
 
     def load_generation_weights(self, filename: str, generation: str) -> None:
@@ -328,16 +292,14 @@ if __name__ == "__main__":
         mutation_rate=0.15,
         crossover_rate=0.8,
         tournament_size=3,
-        evaluation_games=5,
+        evaluation_games=5
     )
     print("Training enhanced genetic algorithm agent...")
     results = agent.train()
     print(f"Best fitness achieved: {results['best_fitness']}")
     print("Training history:")
     for entry in agent.fitness_history:
-        print(
-            f"Generation {entry['generation'] + 1}: "
-            f"Max={entry['max_fitness']:.4f}, "
-            f"Avg={entry['avg_fitness']:.4f}, "
-            f"Min={entry['min_fitness']:.4f}"
-        )
+        print(f"Generation {entry['generation'] + 1}: "
+              f"Max={entry['max_fitness']:.4f}, "
+              f"Avg={entry['avg_fitness']:.4f}, "
+              f"Min={entry['min_fitness']:.4f}")

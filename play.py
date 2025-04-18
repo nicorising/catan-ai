@@ -1,30 +1,22 @@
 import sys
 
-from catanatron import Color, Game
+from catanatron import Color, Game, RandomPlayer
 
-from catan_ai.agents.GAagent import GeneticAlgorithmAgent
 from catan_ai.agents.random_agent import RandomAgent
 
 
 def main() -> None:
-    num_games = int(sys.argv[1]) if len(sys.argv) >= 2 else 100
+    num_games = int(sys.argv[1]) if len(sys.argv) >= 2 else 1
 
-    def create_ga_agent(color):
-        agent = GeneticAlgorithmAgent(color)
-        try:
-            agent.load_weights("final_weights.npy")
-            print("Loaded pre-trained weights for genetic algorithm agent")
-        except FileNotFoundError:
-            print("No pre-trained weights found. Using untrained agent.")
-        return agent
-
-    players = [RandomAgent(Color.BLUE), create_ga_agent(Color.WHITE)]
+    players = [
+        RandomAgent(Color.BLUE),
+        RandomPlayer(Color.RED),
+    ]
 
     scorecard = {}
 
     for _ in range(num_games):
         game = Game(players)
-        game.TURNS_LIMIT = 5000000
         winner = game.play()
 
         scorecard[winner] = scorecard.get(winner, 0) + 1
