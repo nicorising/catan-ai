@@ -3,7 +3,7 @@ import sys
 from catanatron import Color, Game, RandomPlayer
 from catanatron_server.utils import open_link
 
-from catan_ai.agents import DQNAgent, GeneticAlgorithmAgent, RandomAgent
+from catan_ai.agents import DQNAgent, GeneticAlgorithmAgent, RandomAgent, TDAgent
 
 MODEL_PATH = "model.pt"
 
@@ -21,8 +21,14 @@ def create_ga_agent(color):
 def main() -> None:
     num_games = int(sys.argv[1]) if len(sys.argv) >= 2 else 100
 
+    td_agent = TDAgent(Color.BLUE)
+    td_agent.load()
+
     players = [
-        DQNAgent(Color.BLUE, path=MODEL_PATH),
+        # td_agent,
+        # MCTS(Color.RED),
+        # create_ga_agent(Color.WHITE),
+        DQNAgent(Color.ORANGE, path=MODEL_PATH),
         RandomAgent(Color.RED),
     ]
 
@@ -33,6 +39,7 @@ def main() -> None:
         winner = game.play()
 
         scorecard[winner] = scorecard.get(winner, 0) + 1
+        print("Played")
 
     print("Player\tWins")
     print("------\t----")
@@ -40,6 +47,7 @@ def main() -> None:
         name = player.name if player is not None else "None"
         print(f"{name}\t{wins}")
 
+    print(sum(players[0].times) / len(players[0].times))
     game.state.players = [RandomPlayer(player.color) for player in game.state.players]
     open_link(game)
 

@@ -56,6 +56,7 @@ class DQNAgent(Player):
 
         self.tile_to_idx: dict[tuple[int, int, int], int] | None = None
         self.edge_to_idx = None
+        self.times = []
 
     def action_to_index(self, action: Action) -> int:
         if action.action_type == ActionType.END_TURN:

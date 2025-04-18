@@ -113,3 +113,7 @@ class TDAgent(Player):
     def save(self):
         with open("td_agent.pickle", "wb") as file:
             pickle.dump(self.q_table, file, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def load(self):
+        with open("td_agent.pickle", "rb") as file:
+            self.q_table = pickle.load(file)

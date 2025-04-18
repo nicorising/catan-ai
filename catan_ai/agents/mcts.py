@@ -43,9 +43,7 @@ class Node(object):
         # track average amount of victory points when we lose/run out of turns
         avg_vp = 0
         nonwins = 0
-        for i in range(
-            sims
-        ):
+        for i in range(sims):
             # do random action
             if gc.play(decide_fn=lambda player, gc, actions: random.choice(actions)) == self.color:
                 wins += 1
