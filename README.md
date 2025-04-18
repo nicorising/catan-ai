@@ -52,6 +52,8 @@ Once the games have been played, a scoreboard will be output. Due to the 1,000 t
 
 ## Visualizing Games
 
+![An example game of Catan between blue and red, visualized.](example_game.png)
+
 If you'd like to visualize the final state of the last game played, you must download the full Catanatron repository to use the experimental visualization server:
 
 ```bash
